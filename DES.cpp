@@ -1,5 +1,6 @@
 #include<iostream>
 #include <cstdlib>
+#include "DES.h"
 
 using namespace std ;
 //macro to define the operation of getting the b th bit from the number a and left shift to the c th position
@@ -68,12 +69,27 @@ int sbox[8][4][16] = {
                     34, 2, 42, 10, 50, 18, 58, 26,
                     33, 1, 41, 9, 49, 17, 57, 25} ;
 
+    int PC_1[56] = {57, 49, 41, 33, 25, 17, 9, 1,
+                    58, 50, 42, 34, 26, 18, 10, 2,
+                    59, 51, 43, 35, 27, 19, 11, 3,
+                    60, 52, 44, 36, 63, 55, 47, 39,
+                    31, 23, 15, 7, 62, 54, 46, 38,
+                    30, 22, 14, 6, 61, 53, 45, 37,
+                    29, 21, 13, 5, 28, 20, 12, 4} ;
 
-void different_permutations(int arr[64],unsigned char x[8],unsigned char y[8])
+    int PC_2[48] = {14, 17, 11, 24, 1, 5, 3, 28,
+                    15, 6, 21, 10, 23, 19, 12, 4,
+                    26, 8, 16, 7, 27, 20, 13, 2,
+                    41, 52, 31, 37, 47, 55, 30, 40,
+                    51, 45, 33, 48, 44, 49, 39, 56,
+                    34, 53, 46, 42, 50, 36, 29, 32} ;
+
+
+void different_permutations(int arr[64],unsigned char x[8],unsigned char y[8],int size_of_y)
 {
 
     int i=0 ;
-    for(i=0;i<8;i++)
+    for(i=0;i<size_of_y;i++)
     {
         y[i] = GET_THE_BIT(x,arr[8*i],0)|GET_THE_BIT(x,arr[8*i+1],1)|
                GET_THE_BIT(x,arr[8*i+2],2)|GET_THE_BIT(x,arr[8*i+3],3)|
@@ -81,19 +97,174 @@ void different_permutations(int arr[64],unsigned char x[8],unsigned char y[8])
                GET_THE_BIT(x,arr[8*i+6],6)|GET_THE_BIT(x,arr[8*i+7],7) ;
         
     }
-    /*for(unsigned j=0 ; j<8 ; j++)
-    {
-        cout<<"ip[ "<<j<<"]="<<(unsigned)p[j]<<endl ;
-    }*/
 
 }
 
-void expansion_function(unsigned char r[4],  char ex[8])
+void left_rotation(char c[7],char x[7],int b) //where b denotes the number of bits I want to rotate
 {
-    /*for(unsigned i=0 ; i<4 ; i++)
+    if(b == 1)
     {
-        cout<<"r[ "<<i<<"]="<<(unsigned)r[i]<<endl ;
-    }*/
+        for(unsigned i=0 ; i<7 ; i++)
+        {
+            x[i] = (c[i]<<1)|((c[i+1]>>3)&1) ;
+            if(i==6)
+            {
+                x[i] = (c[i]<<1)|((c[0]>>3)&1) ;
+            }
+        }
+    }
+    else if(b == 2)
+    {
+        for(unsigned i=0 ; i<7 ; i++)
+        {
+            x[i] = (c[i]<<2)|((c[i+1]>>2)&0x3) ;
+            if(i==6)
+            {
+                x[i] = (c[i]<<2)|((c[0]>>2)&0x3) ;
+            }
+        }
+    }
+
+}
+
+void right_rotation(char c[7],char x[7],int b) //where b denotes the number of bits I want to rotate
+{
+    if(b == 1)
+    {
+        x[0] = (c[0]>>1)|((c[6]&1)<<3) ;
+        for(unsigned i=1 ; i<7 ; i++)
+        {
+            x[i] = (c[i]>>1)|((c[i-1]&1)<<3) ;
+        }
+    }
+    else if(b == 2)
+    {
+        x[0] = (c[0]>>2)|((c[6]&0x3)<<2) ;
+        for(unsigned i=1 ; i<7 ; i++)
+        {
+            x[i] = (c[i]>>2)|((c[i-1]&0x3)<<2) ;
+        }
+    }
+}
+
+
+void adjoining_two_28_bits_to_one_56_bit( char c[7], char d[7], unsigned char y[7])
+{
+    for(unsigned i=0; i<3 ;i++)
+    {
+        y[i] = (c[2*i]<<4)|(c[(2*i)+1]&0xF) ;
+    }
+    y[3] = (c[6]<<4)|(d[0]&0xF) ;
+    y[4] = (d[1]<<4)|(d[2]&0xF) ;
+    y[5] = (d[3]<<4)|(d[4]&0xF) ;
+    y[6] = (d[5]<<4)|(d[6]&0xF) ;
+}
+
+void key_scheduling(unsigned char init_key[8],unsigned char key[16][6])
+{
+
+    unsigned char x[7] ;
+    different_permutations(PC_1,init_key,x,7) ;
+    char c[17][7], d[17][7] ; //each c[j][i] and d[j][i] contains 4 bits
+
+    for(unsigned i=0 ; i<4 ; i++)
+    {
+        if(i<3)
+        {
+            c[0][2*i] = x[i]>>4 ;
+            c[0][(2*i)+1] = x[i]&0xF ; 
+        }
+        else if(i==3)
+        {
+            c[0][2*i] = x[i]>>4 ;
+            d[0][0] = x[i]&0xF ;
+        }
+    }
+    d[0][1] = x[4]>>4 ;
+    d[0][2] = x[4]&0xF ;
+    d[0][3] = x[5]>>4 ;
+    d[0][4] = x[5]&0xF ;
+    d[0][5] = x[6]>>4 ;
+    d[0][6] = x[6]&0xF ;
+
+    int count = 1 ;
+    for(count=1 ; count<17 ; count++)
+    {
+        if(count == 1 || count ==2 || count == 9 || count==16)
+        {
+            left_rotation(c[count-1],c[count],1) ;
+            left_rotation(d[count-1],d[count],1) ;
+        }
+        else
+        {
+            left_rotation(c[count-1],c[count],2) ;
+            left_rotation(d[count-1],d[count],2) ;
+        }
+    }
+    
+    unsigned char y[16][7] ;
+
+    for(unsigned step=0 ; step<16 ; step++)
+    {
+        adjoining_two_28_bits_to_one_56_bit(c[step+1],d[step+1],y[step]) ;
+        different_permutations(PC_2,y[step],key[step],6) ;
+    }
+}
+
+
+void reverse_key_scheduling(unsigned char init_key[8],unsigned char key[16][6])
+{
+    unsigned char x[7] ;
+    different_permutations(PC_1,init_key,x,7) ;
+    char c[17][7], d[17][7] ; //each c[j][i] and d[j][i] contains 4 bits
+
+    for(unsigned i=0 ; i<4 ; i++)
+    {
+        if(i<3)
+        {
+            c[0][2*i] = x[i]>>4 ;
+            c[0][(2*i)+1] = x[i]&0xF ; 
+        }
+        else if(i==3)
+        {
+            c[0][2*i] = x[i]>>4 ;
+            d[0][0] = x[i]&0xF ;
+        }
+    }
+    d[0][1] = x[4]>>4 ;
+    d[0][2] = x[4]&0xF ;
+    d[0][3] = x[5]>>4 ;
+    d[0][4] = x[5]&0xF ;
+    d[0][5] = x[6]>>4 ;
+    d[0][6] = x[6]&0xF ;
+
+    int count = 0 ;
+    for(count=1 ; count<16 ; count++)
+    {
+        if(count == 1 || count ==8 || count == 15)
+        {
+            right_rotation(c[count-1],c[count],1) ;
+            right_rotation(d[count-1],d[count],1) ;
+        }
+        else
+        {
+            right_rotation(c[count-1],c[count],2) ;
+            right_rotation(d[count-1],d[count],2) ;
+        }
+    }
+
+    unsigned char y[16][7] ;
+
+    for(unsigned step=0 ; step<16 ; step++)
+    {
+        adjoining_two_28_bits_to_one_56_bit(c[step],d[step],y[step]) ;
+        different_permutations(PC_2,y[step],key[step],6) ;
+    }
+}
+
+void expansion_function_and_key_xoring(unsigned char r[4],  char ex[8],unsigned char key[6])
+{
+
     int EXP[48] = {32, 1, 2, 3, 4, 5,
                     4, 5, 6, 7, 8, 9,
                     8, 9, 10, 11, 12, 13,
@@ -103,19 +274,15 @@ void expansion_function(unsigned char r[4],  char ex[8])
                     24, 25, 26, 27, 28, 29,
                     28, 29, 30, 31, 32, 1} ;
 
+    unsigned char d[6] ;
+    different_permutations(EXP,r,d,6) ;
+
     unsigned char c[6] ;
-    
-    for(unsigned i=0 ; i<6 ; i++)
+    for(unsigned j=0 ; j<6 ; j++)
     {
-        c[i] = GET_THE_BIT(r,EXP[8*i],0)|GET_THE_BIT(r,EXP[8*i+1],1)|
-               GET_THE_BIT(r,EXP[8*i+2],2)|GET_THE_BIT(r,EXP[8*i+3],3)|
-               GET_THE_BIT(r,EXP[8*i+4],4)|GET_THE_BIT(r,EXP[8*i+5],5)|
-               GET_THE_BIT(r,EXP[8*i+6],6)|GET_THE_BIT(r,EXP[8*i+7],7);
+        c[j] = d[j]^key[j] ;
     }
-    /*for(unsigned s=0 ; s<6 ; s++)
-    {
-        cout<<"text["<<s<<"]= "<<(unsigned)c[s]<<endl ;
-    }*/
+
     ex[0] = c[0]>>2 ;
     ex[1] = (c[0]&0x3)|(((c[1]>>4)&0x0F)<<2) ;
     ex[2] = (c[1]&0x0F)|(((c[2]>>6)&0x3)<<4) ;
@@ -124,19 +291,11 @@ void expansion_function(unsigned char r[4],  char ex[8])
     ex[5] = (c[3]&0x3)|(((c[4]>>4)&0x0F)<<2) ;
     ex[6] = (c[4]&0x0F)|(((c[5]>>6)&0x3)<<4) ;
     ex[7] = c[5] & 0x3F ;
-    /*for(unsigned t=0 ; t<8 ; t++)
-    {
-        cout<<"expaned_text["<<t<<"]= "<<(int)ex[t]<<endl ;
-    }*/
 
 }
 
 void feeding_into_s_boxes_and_permutation(char x[8] , unsigned char f[4])
 {
-    /*for(unsigned i=0 ; i<8 ; i++)
-    {
-        cout<<"x[ "<<i<<"]="<<(int)x[i]<<endl ;
-    }*/
     char y[8] ;
     
     for(unsigned i = 0; i<8 ; i++)
@@ -145,10 +304,6 @@ void feeding_into_s_boxes_and_permutation(char x[8] , unsigned char f[4])
         int row = (x[i]&0x1)|((x[i]>>5)<<1) ;
         y[i] = sbox[i][row][col] ;
     }
-    /*for(unsigned k=0; k<8 ; k++)
-    {
-        cout<<"y["<<k<<"]= "<<(unsigned)y[k]<<endl ;
-    }*/
 
     unsigned char e[4] ;
 
@@ -156,37 +311,22 @@ void feeding_into_s_boxes_and_permutation(char x[8] , unsigned char f[4])
     {
         e[j] = (y[2*j]<<4)|y[(2*j)+1] ;
     }
-    /*for(unsigned t=0; t<4 ; t++)
-    {
-        cout<<"e["<<t<<"]= "<<(unsigned)e[t]<<endl ;
-    }*/
 
     int permute[32] = {16, 7, 20, 21, 29, 12, 28, 17,
                         1, 15, 23, 26, 5, 18, 31, 10,
                         2, 8, 24, 14, 32, 27, 3, 9,
                         19, 13, 30, 6, 22, 11, 4, 25} ;
 
-    for(unsigned j=0 ; j<4 ; j++)
-    {
-        f[j]= GET_THE_BIT(e,permute[8*j],0)|GET_THE_BIT(e,permute[8*j+1],1)|
-              GET_THE_BIT(e,permute[8*j+2],2)|GET_THE_BIT(e,permute[8*j+3],3)|
-              GET_THE_BIT(e,permute[8*j+4],4)|GET_THE_BIT(e,permute[8*j+5],5)|
-              GET_THE_BIT(e,permute[8*j+6],6)|GET_THE_BIT(e,permute[8*j+7],7);
-
-    }
-    /*for(unsigned q=0; q<4 ; q++)
-    {
-        cout<<"f["<<q<<"]= "<<(unsigned)f[q]<<endl ;
-    }*/
+    different_permutations(permute,e,f,4) ;
 
 
 }
 
 
-void DES_encrypt(unsigned char m[8] , unsigned char c[8])
+void DES::DES_encrypt(unsigned char m[8] , unsigned char c[8],unsigned char k[8])
 {
     unsigned char p[8] ;
-    different_permutations(IP,m,p) ;
+    different_permutations(IP,m,p,8) ;
 
     unsigned char l[4] , r[4] ;
     for(unsigned i=0 ; i<4 ; i++)
@@ -198,10 +338,12 @@ void DES_encrypt(unsigned char m[8] , unsigned char c[8])
         r[j] = p[j+4] ;
     }
     int count = 0 ;
+    unsigned char key[16][6] ;
+    key_scheduling(k,key) ;
     while(count<16)
     {
         char expaned_text[8] ;
-        expansion_function(r,expaned_text) ;
+        expansion_function_and_key_xoring(r,expaned_text,key[count]) ;
         unsigned char f[4] ;
         feeding_into_s_boxes_and_permutation(expaned_text,f) ;
         unsigned char t[4] ;
@@ -228,51 +370,58 @@ void DES_encrypt(unsigned char m[8] , unsigned char c[8])
         temp[r+4] = l[r] ;
     }
 
-    different_permutations(invIP,temp,c) ;
-    /*for(unsigned i=0 ; i<8 ; i++)
-    {
-        cout<<"c[ "<<i<<"]="<<(unsigned)c[i]<<endl ;
-    }*/
+    different_permutations(invIP,temp,c,8) ;
 
 
 }
 
-
-
-
-
-
-
-
-int main()
+void DES::DES_decrypt(unsigned char m[8] , unsigned char c[8],unsigned char k[8])
 {
-    unsigned char plain_text[8] = {'S','O','U','M','E','N','D','U'} ;
-    cout<<"The plain text is"<<endl ;
-    for(unsigned k=0; k<8 ; k++)
+    unsigned char p[8] ;
+    different_permutations(IP,m,p,8) ;
+
+    unsigned char l[4] , r[4] ;
+    for(unsigned i=0 ; i<4 ; i++)
     {
-        cout<<""<<(char)plain_text[k] ;
+        l[i] = p[i] ;
     }
-    cout<<endl ;
-
-    unsigned char cipher_text[8] ;
-    DES_encrypt(plain_text,cipher_text) ;
-
-    cout<<"The cipher text is"<<endl ;
-    for(unsigned t=0; t<8 ; t++)
+    for(unsigned j=0 ; j<4 ; j++)
     {
-        cout<<"cipher_text["<<t<<"]= "<<(unsigned)cipher_text[t]<<endl ;
+        r[j] = p[j+4] ;
     }
-
-    unsigned char deciphered_text[8] ;
-    DES_encrypt(cipher_text,deciphered_text) ;
-
-    cout<<"The deciphered text is"<<endl ;
-    for(unsigned t=0; t<8 ; t++)
+    int count = 0 ;
+    unsigned char key[16][6] ;
+    reverse_key_scheduling(k,key) ;
+    while(count<16)
     {
-        cout<<""<<(char)deciphered_text[t];
+        char expaned_text[8] ;
+        expansion_function_and_key_xoring(r,expaned_text,key[count]) ;
+        unsigned char f[4] ;
+        feeding_into_s_boxes_and_permutation(expaned_text,f) ;
+        unsigned char t[4] ;
+        for(unsigned i=0 ; i<4 ; i++)
+        {
+            t[i] = l[i];
+        }
+        for(unsigned n=0 ; n<4 ; n++)
+        {
+            l[n] = r[n]  ;
+            r[n] = t[n]^f[n] ;
+        }
+        count++ ;
     }
-    cout<<endl ;
 
 
-    return 0 ;
+    unsigned char temp[8] ;
+    for(unsigned q=0 ; q<4 ; q++)
+    {
+        temp[q] = r[q] ;
+    }
+    for(unsigned r=0 ; r<4 ; r++)
+    {
+        temp[r+4] = l[r] ;
+    }
+
+    different_permutations(invIP,temp,c,8) ;
+
 }
