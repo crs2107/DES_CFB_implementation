@@ -7,24 +7,24 @@ void CFB_encrypt(const char* file_name, const char* output_file_name)
 {
     int count = 0 ;
     unsigned char y[8] ;
-    ifstream f (file_name, ifstream::binary) ;
+    ifstream f (file_name, ifstream::binary) ; 
     if (!f.is_open()) return  ;
     f.seekg (0,f.end);
-    long size = f.tellg();
+    long size = f.tellg(); //calculating the size of the file. Though it is not necessary to do so
     f.seekg (0);
 
     cout<<"size of file is "<<size<<endl ;
 
     ofstream of(output_file_name,ofstream::binary) ;
 
-    unsigned char k[8] = {'S','A','M','A','P','U','K','I'} ;
-    unsigned char IV[8] = {'D','E','K','I','S','U','G','I'} ;
-    of.write((char *)k,8) ;
-    of.write((char *)IV,8) ;
+    unsigned char k[8] = {'S','A','M','A','P','U','K','I'} ; //initial key
+    unsigned char IV[8] = {'D','E','K','I','S','U','G','I'} ;//IV
+    of.write((char *)k,8) ; //First write k into the cipher.txt
+    of.write((char *)IV,8) ;//second write IV into the cipher.txt
     while (!f.eof()) {
         unsigned char plain_text[9] ;
 
-        f.read((char *)plain_text, 8) ;
+        f.read((char *)plain_text, 8) ; //reading 8 bytes of data and putting it in plain_text[8]
         plain_text[8] = 0 ;
 
 
@@ -44,7 +44,7 @@ void CFB_encrypt(const char* file_name, const char* output_file_name)
 
         unsigned char ci[8] ;
 
-        if(count == 0)
+        if(count == 0) //the first block
         {
             DES::DES_encrypt(IV,ci,k) ;
             for(unsigned i=0 ; i<8 ; i++)
@@ -52,7 +52,7 @@ void CFB_encrypt(const char* file_name, const char* output_file_name)
                 y[i] = ci[i] ^ plain_text[i] ;
             }
         }
-        else
+        else //The general block
         {
             DES::DES_encrypt(y,ci,k) ;
             for(unsigned i=0 ; i<8 ; i++)
@@ -64,7 +64,7 @@ void CFB_encrypt(const char* file_name, const char* output_file_name)
         of.write((char *)y,8) ;
         count++ ;
     }
-    if(size % 8 ==0)
+    if(size % 8 ==0) 
     {
         unsigned char temp[8] ; 
         DES::DES_encrypt(y,temp,k) ;
@@ -97,27 +97,27 @@ void CFB_decrypt(const char* file_name, const char* output_file_name)
     ifstream cf (file_name, ifstream::binary) ;
     if (!cf.is_open()) return  ;
 
-    unsigned char prev_cipher_text[8] ;
+    unsigned char prev_cipher_text[8] ;//keeping track of y[i-1] in the i th rouond
     while (!cf.eof()) {
         unsigned char k[8] ;
         unsigned char IV[8]  ;
         unsigned char cipher_text[9] ;
 
-        if(counter == 0)
+        if(counter == 0) //here I am reading the initial key k
         {
             cf.read((char *)k, 8) ;
             k[8] = 0 ;
             counter ++ ;
         }
 
-        else if(counter == 1)
+        else if(counter == 1) //here I am reading IV
         {
             cf.read((char *)IV , 8) ;
             IV[8] = 0 ;
             counter ++ ;
         }
 
-        else
+        else //starts decrypting
         {
             cf.read((char *)cipher_text, 8) ;
             cipher_text[8] = 0 ;
@@ -128,7 +128,7 @@ void CFB_decrypt(const char* file_name, const char* output_file_name)
 
             unsigned char ci[8] ;
 
-            if(counter == 2)
+            if(counter == 2) //First block
             {
                 DES::DES_encrypt(IV,ci,k) ;
                 for(unsigned i=0 ; i<8 ; i++)
@@ -142,7 +142,7 @@ void CFB_decrypt(const char* file_name, const char* output_file_name)
                 }
                 counter++ ;
             }
-            else if(counter > 2)
+            else if(counter > 2)//General block
             {
                 DES::DES_encrypt(prev_cipher_text,ci,k) ;
                 for(unsigned i=0 ; i<8 ; i++)
@@ -169,7 +169,7 @@ void CFB_decrypt(const char* file_name, const char* output_file_name)
 
 int main(int argc , char** argv)
 {
-    CFB_encrypt(argv[1],"cipher.txt") ;
+    CFB_encrypt(argv[1],"cipher.txt") ; //Taking input from the terminal
     CFB_decrypt("cipher.txt","decipher.txt") ;
 
     return 0 ;

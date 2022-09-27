@@ -148,7 +148,7 @@ void right_rotation(char c[7],char x[7],int b) //where b denotes the number of b
 }
 
 
-void adjoining_two_28_bits_to_one_56_bit( char c[7], char d[7], unsigned char y[7])
+void adjoining_two_28_bits_to_one_56_bit( char c[7], char d[7], unsigned char y[7]) //adjoining C[i], D[i] before the PC-2 permutat                                                                                     ion
 {
     for(unsigned i=0; i<3 ;i++)
     {
@@ -167,7 +167,7 @@ void key_scheduling(unsigned char init_key[8],unsigned char key[16][6])
     different_permutations(PC_1,init_key,x,7) ;
     char c[17][7], d[17][7] ; //each c[j][i] and d[j][i] contains 4 bits
 
-    for(unsigned i=0 ; i<4 ; i++)
+    for(unsigned i=0 ; i<4 ; i++) //here I am splitting x to get C_0 and D_0
     {
         if(i<3)
         {
@@ -188,7 +188,7 @@ void key_scheduling(unsigned char init_key[8],unsigned char key[16][6])
     d[0][6] = x[6]&0xF ;
 
     int count = 1 ;
-    for(count=1 ; count<17 ; count++)
+    for(count=1 ; count<17 ; count++) // constructing C[i],D[i] where i= 1,..,16
     {
         if(count == 1 || count ==2 || count == 9 || count==16)
         {
@@ -283,7 +283,7 @@ void expansion_function_and_key_xoring(unsigned char r[4],  char ex[8],unsigned 
         c[j] = d[j]^key[j] ;
     }
 
-    ex[0] = c[0]>>2 ;
+    ex[0] = c[0]>>2 ;//each c[i] is of 8 bits but for s box we need 6 bit size input. So I am building ex[8] where each ex[i] is 6b                       it long from c[6] where each c[i] is of size 8 bit (8*6 = 6*8)
     ex[1] = (c[0]&0x3)|(((c[1]>>4)&0x0F)<<2) ;
     ex[2] = (c[1]&0x0F)|(((c[2]>>6)&0x3)<<4) ;
     ex[3] = c[2] & 0x3F ;
@@ -310,7 +310,7 @@ void feeding_into_s_boxes_and_permutation(char x[8] , unsigned char f[4])
     for(unsigned j=0 ; j<4 ; j++)
     {
         e[j] = (y[2*j]<<4)|y[(2*j)+1] ;
-    }
+    } //adjoining y[i] and y[i+1] to get a 8 bit input to feed into permute
 
     int permute[32] = {16, 7, 20, 21, 29, 12, 28, 17,
                         1, 15, 23, 26, 5, 18, 31, 10,
@@ -351,7 +351,7 @@ void DES::DES_encrypt(unsigned char m[8] , unsigned char c[8],unsigned char k[8]
         {
             t[i] = l[i];
         }
-        for(unsigned n=0 ; n<4 ; n++)
+        for(unsigned n=0 ; n<4 ; n++) 
         {
             l[n] = r[n]  ;
             r[n] = t[n]^f[n] ;
@@ -361,7 +361,7 @@ void DES::DES_encrypt(unsigned char m[8] , unsigned char c[8],unsigned char k[8]
 
 
     unsigned char temp[8] ;
-    for(unsigned q=0 ; q<4 ; q++)
+    for(unsigned q=0 ; q<4 ; q++) //last swap before inverse permutation
     {
         temp[q] = r[q] ;
     }
